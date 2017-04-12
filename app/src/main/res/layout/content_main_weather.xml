@@ -6,26 +6,24 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="com.example.myweatherapp.MainWeatherActivity"
-    android:background="@android:color/holo_purple"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:showIn="@layout/app_bar_main_weather">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
-        android:layout_marginTop="6dp"
         android:baselineAligned="false"
-        android:orientation="vertical"
-        android:paddingTop="?attr/actionBarSize">
+        android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/imageView2"
+            android:id="@+id/imageView3"
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:layout_gravity="center" />
 
         <TextView
-            android:id="@+id/tvCity2"
+            android:id="@+id/tvCity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -33,7 +31,7 @@
             android:textSize="18sp" />
 
         <TextView
-            android:id="@+id/tvTemperature2"
+            android:id="@+id/tvTemperature"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -42,17 +40,16 @@
             android:textSize="36dp" />
 
         <TextView
-            android:id="@+id/tvDescription2"
+            android:id="@+id/tvDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Description"
             android:gravity="center"
             android:textColor="@android:color/white"
             android:textSize="16dp" />
-
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -61,7 +58,7 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvWind2"
+                    android:id="@+id/tvWind"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -70,7 +67,7 @@
                     android:textSize="16dp" />
 
                 <TextView
-                    android:id="@+id/tvPressure2"
+                    android:id="@+id/tvPressure"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Pressure: 0 hpa"
@@ -78,7 +75,7 @@
                     android:textSize="16dp" />
 
                 <TextView
-                    android:id="@+id/tvHumidity2"
+                    android:id="@+id/tvHumidity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Humidity: 0 %"
@@ -89,11 +86,11 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="100dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:layout_marginLeft="100dp">
 
                 <TextView
-                    android:id="@+id/tvSunrise2"
+                    android:id="@+id/tvSunrise"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -102,7 +99,7 @@
                     android:textSize="16dp" />
 
                 <TextView
-                    android:id="@+id/tvSunset2"
+                    android:id="@+id/tvSunset"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Sunset: 00:00"
@@ -110,7 +107,5 @@
                     android:textSize="16dp" />
             </LinearLayout>
         </LinearLayout>
-
     </LinearLayout>
-
 </android.support.design.widget.CoordinatorLayout>

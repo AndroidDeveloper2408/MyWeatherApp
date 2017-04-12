@@ -1,4 +1,4 @@
-package com.example.myweatherapp.GetMainSettings;
+package com.example.myweatherapp.getMainSettings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,6 +12,13 @@ public class GetConnection {
     static String stream = null;
 
     public GetConnection() {
+    }
+
+    public String getJsonObj(String... params){
+        String stream = null;
+        String urlString = params[0];
+        stream = getHTTPData(urlString);
+        return stream;
     }
 
     public String getHTTPData(String urlString){

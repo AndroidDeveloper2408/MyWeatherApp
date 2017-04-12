@@ -1,40 +1,84 @@
 package com.example.myweatherapp;
 
-import android.app.ProgressDialog;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
+import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+import android.widget.ImageView;
+import android.widget.TextView;
 
-import com.example.myweatherapp.GetMainSettings.GetConnection;
-import com.example.myweatherapp.GetMainSettings.MainSettings;
-import com.example.myweatherapp.GetMainSettings.Weather;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.example.myweatherapp.getMainSettings.GetConnection;
+import com.example.myweatherapp.getMainSettings.MainSettings;
+import com.example.myweatherapp.getMainSettings.Weather;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    TextView txtCity, txtLastUpdate, txtDescription, txtHumidity, txtTime, txtCelsius;
+    ImageView imageView;
+
     private List<Weather> longTermTomorrowWeather = new ArrayList<>();
+    private Toolbar toolbar;
+    private TabLayout tabLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new GetWeather().execute(MainSettings.apiRequest());
+        //tabLayout = (TabLayout)findViewById(R.id.tabs);
+
+        //Control
+        /*txtCity = (TextView) findViewById(R.id.txtCity);
+        txtLastUpdate = (TextView) findViewById(R.id.txtLastUpdate);
+        txtDescription = (TextView) findViewById(R.id.txtDescription);
+        txtHumidity = (TextView) findViewById(R.id.txtHumidity);
+        txtTime = (TextView) findViewById(R.id.txtTime);
+        txtCelsius = (TextView) findViewById(R.id.txtCelsius);
+        imageView = (ImageView) findViewById(R.id.imageView);*/
+
+        new GetWeather().execute(MainSettings.apiRequestWeek());
+
     }
+
+    public boolean isSameDate(Date date1, Date date2) {
+        return date1.getDay() == date2.getDay();
+    }
+
+    public ArrayList<ArrayList<Weather>> groupWeatherByDay(List<Weather> longTermWeather) {
+
+        ArrayList<ArrayList<Weather>> arrayList = new ArrayList<>();
+
+        arrayList.add(new ArrayList<Weather>());
+        arrayList.get(0).add(longTermWeather.get(0));
+
+        Date prev = longTermWeather.get(0).getDateTimestamp();
+
+        for (int i = 1; i < longTermWeather.size(); i++) {
+            Date current = longTermWeather.get(i).getDateTimestamp();
+            int lastGroup = arrayList.size() - 1;
+
+            if(isSameDate(prev, current)) {
+                arrayList.get(lastGroup).add(longTermWeather.get(i));
+            } else {
+                prev = current;
+                arrayList.add(new ArrayList<Weather>());
+                arrayList.get(lastGroup+1).add(longTermWeather.get(i));
+            }
+        }
+
+        return arrayList;
+    }
+
 
     public static String getRainString(JSONObject rainObj) {
         String rain = "0";
@@ -45,40 +89,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return rain;
-    }
-
-    private String setWeatherIcon(int actualId, int hourOfDay) {
-        int id = actualId / 100;
-        String icon = "";
-        if (actualId == 800) {
-            if (hourOfDay >= 7 && hourOfDay < 20) {
-                icon = "1";
-            } else {
-                icon = "2";
-            }
-        } else {
-            switch (id) {
-                case 2:
-                    icon = "3";
-                    break;
-                case 3:
-                    icon = "4";
-                    break;
-                case 7:
-                    icon = "5";
-                    break;
-                case 8:
-                    icon = "6";
-                    break;
-                case 6:
-                    icon = "7";
-                    break;
-                case 5:
-                    icon = "8";
-                    break;
-            }
-        }
-        return icon;
     }
 
     private class GetWeather extends AsyncTask<String,Void,String> {
@@ -114,10 +124,14 @@ public class MainActivity extends AppCompatActivity {
                 for (i = 0; i < list.length(); i++) {
                     Weather weather = new Weather();
 
+                    JSONObject cityObj = reader.getJSONObject("city");
                     JSONObject listItem = list.getJSONObject(i);
                     JSONObject main = listItem.getJSONObject("main");
 
-                    weather.setDate(listItem.getString("dt"));
+                            weather.setCity(cityObj.getString("name"));
+                    weather.setDate(listItem.getString("dt_txt"));
+                    weather.setDateTimestamp(listItem.getString("dt"));
+                    weather.setTime(listItem.getString("dt_txt"));
                     weather.setTemperature(main.getString("temp"));
                     weather.setDescription(listItem.optJSONArray("weather").getJSONObject(0).getString("description"));
                     JSONObject windObj = listItem.optJSONObject("wind");
@@ -145,13 +159,20 @@ public class MainActivity extends AppCompatActivity {
                     final String idString = listItem.optJSONArray("weather").getJSONObject(0).getString("id");
                     weather.setId(idString);
 
-                    final String dateMsString = listItem.getString("dt") + "000";
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTimeInMillis(Long.parseLong(dateMsString));
-                    weather.setIcon(setWeatherIcon(Integer.parseInt(idString), cal.get(Calendar.HOUR_OF_DAY)));
+                    weather.setIcon(listItem.optJSONArray("weather").getJSONObject(0).getString("icon"));
                     longTermTomorrowWeather.add(weather);
                 }
-                Log.e("parseJson", longTermTomorrowWeather.get(2).toString());
+
+                txtCity.setText(longTermTomorrowWeather.get(0).getCity().toString());
+                txtLastUpdate.setText(String.format("Last Updated: %s", MainSettings.getDateNow()));
+                txtDescription.setText(longTermTomorrowWeather.get(0).getDescription().toString());
+                txtHumidity.setText(longTermTomorrowWeather.get(0).getHumidity().toString() + "%");
+                txtTime.setText(longTermTomorrowWeather.get(0).getDate().toString());
+                txtCelsius.setText(String.format("%.2f °C", longTermTomorrowWeather.get(0).getTemperature()));
+                Picasso.with(MainActivity.this)
+                        .load(MainSettings.getImage(longTermTomorrowWeather.get(0).getIcon()))
+                        .into(imageView);
+                ArrayList<ArrayList<Weather>> arrayList = groupWeatherByDay(longTermTomorrowWeather);
             } catch (JSONException e) {
                 e.printStackTrace();
             }

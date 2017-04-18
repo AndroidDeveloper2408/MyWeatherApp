@@ -1,39 +1,86 @@
 package com.example.myweatherapp;
 
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.constraint.ConstraintLayout;
-import android.support.design.widget.CoordinatorLayout;
+import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.myweatherapp.adapter.RecycleForecastAdapter;
 import com.example.myweatherapp.adapter.TabsPagerFragmentAdapter;
+import com.example.myweatherapp.fragments.ExampleFragment;
 import com.example.myweatherapp.getMainSettings.GetConnection;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
+import com.example.myweatherapp.tasks.GetWeatherTodaySimple;
+import com.example.myweatherapp.tasks.GetWeatherWeekForecast;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.Profile;
+import com.facebook.ProfileTracker;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.OptionalPendingResult;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.PlaceDetectionApi;
+import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
+import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static com.example.myweatherapp.getMainSettings.MainSettings.unixTimeStampToDateTime;
 
 public class MainWeatherActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
 
     ImageView imageView;
     TextView tvCity;
@@ -46,9 +93,37 @@ public class MainWeatherActivity extends AppCompatActivity
     TextView tvSunset;
     TextView tvLastUpdate;
 
-    Weather todayWeather;
+    SignInButton signInButton;
+
+    View appView;
+
+    String key_facebook = "pISoKJA2jI8dIDY/f0MMIl0txSw=";
+
+    private static final int RC_SIGN_IN = 9001;
 
     private ViewPager viewPager;
+
+    LoginButton loginButton;
+    Button signOut;
+
+    ProgressDialog progressDialog;
+
+    CallbackManager callbackManager;
+
+    private GoogleApiClient mGoogleApiClient;
+
+    public GoogleApiClient mGoogleApiClientPlaces;
+
+    int PLACE_PICKER_REQUEST = 1;
+
+    NavigationView navigationView;
+    ImageView img;
+    TextView temp, city, descr;
+
+    private boolean isData = false;
+
+    Weather todayweather = new Weather();
+    MainSettings mainSettings = new MainSettings();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,14 +146,183 @@ public class MainWeatherActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        appView = findViewById(R.id.viewApp);
+        progressDialog = new ProgressDialog(this);
 
         initTabs();
         initViews();
 
-        new GetWeatherTodaySimple().execute(MainSettings.apiRequestToday());
+        facebookInit();
+
+        googlePlusInit();
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        if (prefs.getBoolean("isdata", false)) {
+            todayweather = mainSettings.parseTodayJson(prefs.getString("lastToday", "123"));
+            setValuesToViews(todayweather);
+        }
+
+        mGoogleApiClientPlaces = new GoogleApiClient
+                .Builder(this)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
+                .enableAutoManage(this, 1, this)
+                .build();
+
+    }
+
+    public void googlePlusInit(){
+        signInButton = (SignInButton) findViewById(R.id.sign_in_button);
+        signOut = (Button) findViewById(R.id.btnSignOut);
+
+        signInButton.setOnClickListener(this);
+        signOut.setOnClickListener(this);
+        signOut.setVisibility(View.GONE);
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestIdToken(MainWeatherActivity.this.getResources().getString(R.string.server_client_id))
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+    }
+
+    private void signIn() {
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        if (result.isSuccess()) {
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+            String name1 = acct.getDisplayName();
+            String email1 = acct.getEmail();
+            String img_url = acct.getPhotoUrl().toString();
+            updateUI(true);
+        } else {
+            // Signed out, show unauthenticated UI.
+            updateUI(false);
+        }
+    }
+
+    private void updateUI(boolean signedIn) {
+        if (signedIn) {
+            signOut.setVisibility(View.VISIBLE);
+            signInButton.setVisibility(View.GONE);
+
+        } else {
+            signInButton.setVisibility(View.VISIBLE);
+            signOut.setVisibility(View.GONE);
+        }
+    }
+
+    private void signOut() {
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
+                new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(Status status) {
+                        updateUI(false);
+                    }
+                });
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.sign_in_button:
+                signIn();
+                break;
+            case R.id.btnSignOut:
+                signOut();
+                break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (callbackManager.onActivityResult(requestCode, resultCode, data)) {
+            return;
+        }
+        else if(requestCode == RC_SIGN_IN) {
+           GoogleSignInResult googleSignInResult = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            Toast.makeText(this, "Google Login Details:" + googleSignInResult.getStatus().toString(), Toast.LENGTH_LONG).show();
+            handleSignInResult(googleSignInResult);
+        }
+        else if (requestCode == PLACE_PICKER_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                Place place = PlacePicker.getPlace(data, this);
+                LatLng location = place.getLatLng();
+                String toastMsg = String.format("Place: %s + lat: %.2f + lon: %.2f", place.getAddress(), location.latitude, location.longitude);
+                Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+
+    public void facebookInit() {
+        loginButton = (LoginButton) findViewById(R.id.login_button);
+        loginButton.setReadPermissions("email");
+
+        callbackManager = CallbackManager.Factory.create();
+
+        // Callback registration
+        loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+
+            private ProfileTracker mProfileTracker;
+
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                if (Profile.getCurrentProfile() == null) {
+                    mProfileTracker = new ProfileTracker() {
+                        @Override
+                        protected void onCurrentProfileChanged(Profile profile, Profile profile2) {
+                            // profile2 is the new profile
+                            Toast.makeText(getApplicationContext(), "1 " + profile.getFirstName(), Toast.LENGTH_SHORT).show();
+                            mProfileTracker.stopTracking();
+                        }
+                    };
+                } else {
+                    Profile profile = Profile.getCurrentProfile();
+                    Toast.makeText(getApplicationContext(), "2 " + profile.getFirstName(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancel() {
+                Toast.makeText(getApplicationContext(), "facebook - onCancel", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(FacebookException e) {
+                Log.v("facebook - onError", e.getMessage());
+            }
+        });
+
+        LoginManager.getInstance().registerCallback(callbackManager,
+                new FacebookCallback<LoginResult>() {
+                    @Override
+                    public void onSuccess(LoginResult loginResult) {
+
+                    }
+
+                    @Override
+                    public void onCancel() {
+                        // App code
+                    }
+
+                    @Override
+                    public void onError(FacebookException exception) {
+                        // App code
+                    }
+                });
     }
 
     public void initViews() {
@@ -91,7 +335,18 @@ public class MainWeatherActivity extends AppCompatActivity
         tvHumidity = (TextView) findViewById(R.id.tvPressure);
         tvSunrise = (TextView) findViewById(R.id.tvSunrise);
         tvSunset = (TextView) findViewById(R.id.tvSunset);
-        tvLastUpdate = (TextView)findViewById(R.id.tvLastUpdate);
+        tvLastUpdate = (TextView) findViewById(R.id.tvLastUpdate);
+
+        temp = (TextView) navigationView.getHeaderView(0).findViewById(R.id.header1);
+        city = (TextView) navigationView.getHeaderView(0).findViewById(R.id.header2);
+        descr = (TextView) navigationView.getHeaderView(0).findViewById(R.id.header3);
+        img = (ImageView) navigationView.getHeaderView(0).findViewById(R.id.imageView);
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     @Override
@@ -120,7 +375,17 @@ public class MainWeatherActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+            if (isNetworkAvailable()) {
+            new GetTodayWeather(progressDialog).execute(MainSettings.apiRequestToday());
+            new GetWeekWeather().execute(MainSettings.apiRequestWeek());
+            isData = true;
+            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+            editor.putBoolean("isdata", isData);
+            editor.commit();
+            }
+            else{
+                Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -133,17 +398,25 @@ public class MainWeatherActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_camera) {
-            // Handle the camera action
+            PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+
+            try {
+                startActivityForResult(builder.build(this), PLACE_PICKER_REQUEST);
+            } catch (GooglePlayServicesRepairableException e) {
+                e.printStackTrace();
+            } catch (GooglePlayServicesNotAvailableException e) {
+                e.printStackTrace();
+            }
         } else if (id == R.id.nav_gallery) {
-            
+
         } else if (id == R.id.nav_slideshow) {
 
         } else if (id == R.id.nav_manage) {
 
         } else if (id == R.id.nav_share) {
-
+            LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile"));
         } else if (id == R.id.nav_send) {
-
+            signIn();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -160,66 +433,14 @@ public class MainWeatherActivity extends AppCompatActivity
         tabLayout.setupWithViewPager(viewPager);
     }
 
-    private String parseTodayJson(String result) {
-        try {
-            todayWeather = new Weather();
-            JSONObject reader = new JSONObject(result);
 
-            final String code = reader.optString("cod");
-            if ("404".equals(code)) {
-                return "CITY_NOT_FOUND";
-            }
-
-            String city = reader.getString("name");
-            String country = "";
-            JSONObject countryObj = reader.optJSONObject("sys");
-            if (countryObj != null) {
-                country = countryObj.getString("country");
-                todayWeather.setSunrise(countryObj.getString("sunrise"));
-                todayWeather.setSunset(countryObj.getString("sunset"));
-            }
-            todayWeather.setCity(city);
-            todayWeather.setCountry(country);
-
-            /*JSONObject coordinates = reader.getJSONObject("coord");
-            if (coordinates != null) {
-                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-                sp.edit().putFloat("latitude", (float) coordinates.getDouble("lon")).putFloat("longitude", (float) coordinates.getDouble("lat")).commit();
-            }*/
-
-            JSONObject main = reader.getJSONObject("main");
-
-            todayWeather.setTemperature(main.getString("temp"));
-            todayWeather.setDescription(reader.getJSONArray("weather").getJSONObject(0).getString("description"));
-            JSONObject windObj = reader.getJSONObject("wind");
-            todayWeather.setWind(windObj.getString("speed"));
-            if (windObj.has("deg")) {
-                todayWeather.setWindDirectionDegree(windObj.getDouble("deg"));
-            } else {
-                Log.e("parseTodayJson", "No wind direction available");
-                todayWeather.setWindDirectionDegree(null);
-            }
-            todayWeather.setPressure(main.getString("pressure"));
-            todayWeather.setHumidity(main.getString("humidity"));
-
-            final String idString = reader.getJSONArray("weather").getJSONObject(0).getString("id");
-            todayWeather.setId(idString);
-            todayWeather.setIcon(reader.optJSONArray("weather").getJSONObject(0).getString("icon"));
-
-            /*SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-            editor.putString("lastToday", result);
-            editor.commit();*/
-
-        } catch (JSONException e) {
-            Log.e("JSONException Data", result);
-            e.printStackTrace();
-            return "JSON_EXCEPTION";
-        }
-
-        return "CITY FOUND SUCESS";
-    }
-
-    public void setValuesToViews() {
+    public void setValuesToViews(Weather todayWeather) {
+        temp.setText(String.format("%.1f °C", todayWeather.getTemperature()));
+        city.setText(todayWeather.getCity());
+        descr.setText(todayWeather.getDescription());
+        Picasso.with(MainWeatherActivity.this)
+                .load(MainSettings.getImage(todayWeather.getIcon()))
+                .into(img);
         Picasso.with(MainWeatherActivity.this)
                 .load(MainSettings.getImage(todayWeather.getIcon()))
                 .into(imageView);
@@ -231,27 +452,117 @@ public class MainWeatherActivity extends AppCompatActivity
         tvHumidity.setText("Humidity: " + todayWeather.getHumidity() + "%");
         tvSunrise.setText("Sunrise" + ": " + unixTimeStampToDateTime(todayWeather.getSunrise(), this));
         tvSunset.setText("Sunset" + ": " + unixTimeStampToDateTime(todayWeather.getSunset(), this));
-        tvLastUpdate.setText(String.format("Last Updated: %s", MainSettings.getDateNow()));
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        tvLastUpdate.setText(prefs.getString("lastUpdate", "No Data"));
     }
 
-    private class GetWeatherTodaySimple extends AsyncTask<String, Void, String> {
+    public void saveDataToday(String json){
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
+        editor.putString("lastToday", json);
+        editor.putString("lastUpdate", String.format("Last Updated: %s", MainSettings.getDateNow()));
+        editor.commit();
+    }
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+    public void saveDataWeek(String json){
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
+        editor.putString("lastWeek", json);
+        editor.commit();
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    private class GetTodayWeather extends GetWeatherTodaySimple {
+
+        public GetTodayWeather(ProgressDialog progressDialog) {
+            super(progressDialog);
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            GetConnection http = new GetConnection();
-            return http.getJsonObj(params);
+        public void onSucess(Weather weather, String s) {
+            saveDataToday(s);
+            setValuesToViews(weather);
         }
+    }
 
+    private class GetWeekWeather extends GetWeatherWeekForecast{
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            parseTodayJson(s);
-            setValuesToViews();
+        public void onSucess(ArrayList<Weather> weatherArrayList, String s) {
+            saveDataWeek(s);
+            RecyclerView recyclerView = (RecyclerView)findViewById(R.id.recyclerView);
+            recyclerView.setAdapter(new RecycleForecastAdapter(weatherArrayList));
         }
     }
 }
+
+/*
+
+
+     private void revokeAccess() {
+        Auth.GoogleSignInApi.revokeAccess(mGoogleApiClient).setResultCallback(
+                new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(Status status) {
+                        // [START_EXCLUDE]
+                        updateUI(false);
+                        // [END_EXCLUDE]
+                    }
+                });
+    }
+
+    private void showProgressDialog() {
+        if (mProgressDialog == null) {
+            mProgressDialog = new ProgressDialog(this);
+            mProgressDialog.setMessage("Loading");
+            mProgressDialog.setIndeterminate(true);
+        }
+
+        mProgressDialog.show();
+    }
+
+    private void hideProgressDialog() {
+        if (mProgressDialog != null && mProgressDialog.isShowing()) {
+            mProgressDialog.hide();
+        }
+    }
+
+  @Override
+    public void onStart() {
+        super.onStart();
+
+        OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(mGoogleApiClient);
+        if (opr.isDone()) {
+            // If the user's cached credentials are valid, the OptionalPendingResult will be "done"
+            // and the GoogleSignInResult will be available instantly.
+            GoogleSignInResult result = opr.get();
+            handleSignInResult(result);
+        } else {
+            // If the user has not previously signed in on this device or the sign-in has expired,
+            // this asynchronous branch will attempt to sign in the user silently.  Cross-device
+            // single sign-on will occur in this branch.
+            showProgressDialog();
+            opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
+                @Override
+                public void onResult(GoogleSignInResult googleSignInResult) {
+                    hideProgressDialog();
+                    handleSignInResult(googleSignInResult);
+                }
+            });
+        }
+    }
+
+    public void googleInit(){
+        // Configure sign-in to request the user's ID, email address, and basic
+        // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
+
+
+        // Set the dimensions of the sign-in button.
+        SignInButton signInButton = (SignInButton) findViewById(R.id.sign_in_button);
+        signInButton.setSize(SignInButton.SIZE_STANDARD);
+        findViewById(R.id.sign_in_button).setOnClickListener(this);
+        findViewById(R.id.sign_out_button).setOnClickListener(this);
+        findViewById(R.id.disconnect_button).setOnClickListener(this);
+        }
+*/

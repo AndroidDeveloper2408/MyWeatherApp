@@ -3,7 +3,6 @@ package com.example.myweatherapp.getMainSettings;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.example.myweatherapp.R;
 
@@ -138,7 +137,7 @@ public class MainSettings {
         return arrayList;
     }
 
-    public ArrayList<ArrayList<Weather>> parseLongForecastJson(String result, Context context) {
+    public ArrayList<ArrayList<Weather>> parseLongForecastJson(String result) {
         ArrayList<ArrayList<Weather>> grouppedArrayList = new ArrayList<>();
         try {
             int i;
@@ -146,9 +145,9 @@ public class MainSettings {
             JSONObject reader = new JSONObject(result);
 
             final String code = reader.optString("cod");
-            if ("404".equals(code)) {
+            /*if ("404".equals(code)) {
                 Toast.makeText(context, "CITY_NOT_FOUND", Toast.LENGTH_SHORT).show();
-            }
+            }*/
             List<Weather> todayWeatherList = new ArrayList<>();
 
             JSONArray list = reader.getJSONArray("list");
@@ -186,10 +185,62 @@ public class MainSettings {
         } catch (JSONException e) {
             Log.e("JSONException Data", result);
             e.printStackTrace();
-            Toast.makeText(context, "JSON_EXCEPTION", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(context, "JSON_EXCEPTION", Toast.LENGTH_SHORT).show();
         }
-        Toast.makeText(context, "CITY FOUND SUCESS", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context, "CITY FOUND SUCESS", Toast.LENGTH_SHORT).show();
         return grouppedArrayList;
+    }
+
+    public Weather parseTodayJson(String result) {
+        Weather todayWeather = new Weather();
+        try {
+            JSONObject reader = new JSONObject(result);
+
+            final String code = reader.optString("cod");
+            /*if ("404".equals(code)) {
+                return "CITY_NOT_FOUND";
+            }*/
+
+            String city = reader.getString("name");
+            String country = "";
+            JSONObject countryObj = reader.optJSONObject("sys");
+            if (countryObj != null) {
+                country = countryObj.getString("country");
+                todayWeather.setSunrise(countryObj.getString("sunrise"));
+                todayWeather.setSunset(countryObj.getString("sunset"));
+            }
+            todayWeather.setCity(city);
+            todayWeather.setCountry(country);
+
+            /*JSONObject coordinates = reader.getJSONObject("coord");
+            if (coordinates != null) {
+                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+                sp.edit().putFloat("latitude", (float) coordinates.getDouble("lon")).putFloat("longitude", (float) coordinates.getDouble("lat")).commit();
+            }*/
+            JSONObject main = reader.getJSONObject("main");
+
+            todayWeather.setTemperature(main.getString("temp"));
+            todayWeather.setDescription(reader.getJSONArray("weather").getJSONObject(0).getString("description"));
+            JSONObject windObj = reader.getJSONObject("wind");
+            todayWeather.setWind(windObj.getString("speed"));
+            if (windObj.has("deg")) {
+                todayWeather.setWindDirectionDegree(windObj.getDouble("deg"));
+            } else {
+                Log.e("parseTodayJson", "No wind direction available");
+                todayWeather.setWindDirectionDegree(null);
+            }
+            todayWeather.setPressure(main.getString("pressure"));
+            todayWeather.setHumidity(main.getString("humidity"));
+
+            final String idString = reader.getJSONArray("weather").getJSONObject(0).getString("id");
+            todayWeather.setId(idString);
+            todayWeather.setIcon(reader.optJSONArray("weather").getJSONObject(0).getString("icon"));
+        } catch (JSONException e) {
+            Log.e("JSONException Data", result);
+            e.printStackTrace();
+            //return "JSON_EXCEPTION";
+        }
+        return todayWeather;
     }
 
     public ArrayList<Weather> groupByDay(ArrayList<ArrayList<Weather>> itemList){

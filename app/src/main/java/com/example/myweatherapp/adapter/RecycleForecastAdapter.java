@@ -18,9 +18,14 @@ public class RecycleForecastAdapter extends RecyclerView.Adapter<WeatherViewHold
 
     ArrayList<Weather> itemList = new ArrayList<>();
 
-
     public RecycleForecastAdapter(ArrayList<Weather> itemList) {
         this.itemList = itemList;
+    }
+
+    public void swap(ArrayList<Weather> datas){
+        itemList.clear();
+        itemList.addAll(datas);
+        notifyDataSetChanged();
     }
 
     @Override

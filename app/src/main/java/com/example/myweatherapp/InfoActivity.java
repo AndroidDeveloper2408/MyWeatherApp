@@ -93,7 +93,7 @@ public class InfoActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            fillList(mainSettings.parseLongForecastJson(s, getApplicationContext()), var);
+            fillList(mainSettings.parseLongForecastJson(s), var);
         }
     }
 }

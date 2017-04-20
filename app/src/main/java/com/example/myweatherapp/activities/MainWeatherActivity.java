@@ -259,7 +259,6 @@ public class MainWeatherActivity extends AppCompatActivity
         }
     }
 
-
     public void facebookInit() {
         loginButton = (LoginButton) findViewById(R.id.login_button);
         loginButton.setReadPermissions("email");

@@ -1,4 +1,4 @@
-package com.example.myweatherapp.adapter;
+package com.example.myweatherapp.adapters;
 
 import android.content.Context;
 import android.content.Intent;
@@ -8,7 +8,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.myweatherapp.InfoActivity;
+import com.example.myweatherapp.activities.InfoActivity;
 import com.example.myweatherapp.R;
 
 public class WeatherViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{

@@ -1,14 +1,15 @@
-package com.example.myweatherapp;
+package com.example.myweatherapp.activities;
 
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
-import com.example.myweatherapp.getMainSettings.GetConnection;
+import com.example.myweatherapp.R;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
 
@@ -43,9 +44,12 @@ public class InfoActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         var = intent.getIntExtra("intent", 10);
-        new GetWeatherWeekForecast().execute(MainSettings.apiRequestWeek());
         listView = (ListView)findViewById(R.id.lvInfo);
         textView = (TextView) findViewById(R.id.tvDay);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        if(prefs.getBoolean("isdata", false)) {
+            fillList(mainSettings.parseLongForecastJson(prefs.getString("lastWeek", "123")), var);
+        }
     }
 
     public void fillList(ArrayList<ArrayList<Weather>> grouppedArrayList, int a){
@@ -75,25 +79,5 @@ public class InfoActivity extends AppCompatActivity {
 
         // определяем список и присваиваем ему адаптер
         listView.setAdapter(simpleAdapter);
-    }
-
-    private class GetWeatherWeekForecast extends AsyncTask<String,Void,String> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected String doInBackground(String... params) {
-            GetConnection http = new GetConnection();
-            return http.getJsonObj(params);
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            fillList(mainSettings.parseLongForecastJson(s), var);
-        }
     }
 }

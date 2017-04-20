@@ -7,9 +7,9 @@
             android:icon="@drawable/ic_sort_black_24dp"
             android:title="Choice city from list" />
         <item
-            android:id="@+id/nav_gallery"
+            android:id="@+id/nav_choicePlace"
             android:icon="@drawable/ic_place_black_24dp"
-            android:title="Choice city on the map" />
+            android:title="Choice place on the map" />
         <item
             android:id="@+id/nav_slideshow"
             android:icon="@drawable/ic_near_me_black_24dp"

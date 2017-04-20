@@ -1,4 +1,4 @@
-package com.example.myweatherapp;
+package com.example.myweatherapp.activities;
 
 import android.os.AsyncTask;
 import android.support.design.widget.TabLayout;
@@ -8,6 +8,7 @@ import android.support.v7.widget.Toolbar;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.myweatherapp.R;
 import com.example.myweatherapp.getMainSettings.GetConnection;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
@@ -46,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         txtCelsius = (TextView) findViewById(R.id.txtCelsius);
         imageView = (ImageView) findViewById(R.id.imageView);*/
 
-        new GetWeather().execute(MainSettings.apiRequestWeek());
+        //new GetWeather().execute(MainSettings.apiRequestWeek());
 
     }
 

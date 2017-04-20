@@ -5,7 +5,7 @@
     android:id="@+id/viewApp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.myweatherapp.MainWeatherActivity">
+    tools:context="com.example.myweatherapp.activities.MainWeatherActivity">
 
     <android.support.design.widget.AppBarLayout
         android:id="@+id/app_bar"
@@ -113,7 +113,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginLeft="100dp">
+                        android:layout_marginLeft="80dp">
 
                         <TextView
                             android:id="@+id/tvSunrise"

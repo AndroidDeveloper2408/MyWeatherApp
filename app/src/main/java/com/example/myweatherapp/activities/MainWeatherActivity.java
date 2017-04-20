@@ -1,13 +1,11 @@
-package com.example.myweatherapp;
+package com.example.myweatherapp.activities;
 
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -15,9 +13,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
@@ -34,10 +29,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.myweatherapp.adapter.RecycleForecastAdapter;
-import com.example.myweatherapp.adapter.TabsPagerFragmentAdapter;
-import com.example.myweatherapp.fragments.ExampleFragment;
-import com.example.myweatherapp.getMainSettings.GetConnection;
+import com.example.myweatherapp.R;
+import com.example.myweatherapp.adapters.RecycleForecastAdapter;
+import com.example.myweatherapp.adapters.TabsPagerFragmentAdapter;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
 import com.example.myweatherapp.tasks.GetWeatherTodaySimple;
@@ -59,20 +53,13 @@ import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.OptionalPendingResult;
-import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.PlaceDetectionApi;
-import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -260,8 +247,14 @@ public class MainWeatherActivity extends AppCompatActivity
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(data, this);
                 LatLng location = place.getLatLng();
-                String toastMsg = String.format("Place: %s + lat: %.2f + lon: %.2f", place.getAddress(), location.latitude, location.longitude);
-                Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
+                String lat = String.valueOf(location.latitude);
+                String lon = String.valueOf(location.longitude);
+                new GetTodayWeather(progressDialog, this).execute(MainSettings.apiRequestToday(lat, lon));
+                new GetWeekWeather(this).execute(MainSettings.apiRequestWeek(lat, lon));
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+                editor.putString("lat", lat);
+                editor.putString("lon", lon);
+                editor.commit();
             }
         }
     }
@@ -374,10 +367,13 @@ public class MainWeatherActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_refresh) {
             if (isNetworkAvailable()) {
-            new GetTodayWeather(progressDialog).execute(MainSettings.apiRequestToday());
-            new GetWeekWeather().execute(MainSettings.apiRequestWeek());
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            String lat = prefs.getString("lat", "47.8167");
+            String lon = prefs.getString("lon", "35.1833");
+            new GetTodayWeather(progressDialog, this).execute(MainSettings.apiRequestToday(lat, lon));
+            new GetWeekWeather(this).execute(MainSettings.apiRequestWeek(lat, lon));
             isData = true;
             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
             editor.putBoolean("isdata", isData);
@@ -387,7 +383,10 @@ public class MainWeatherActivity extends AppCompatActivity
                 Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
             }
         }
-
+        else if(id == R.id.action_graph){
+            Intent intent = new Intent(this, GraphActivity.class);
+            startActivity(intent);
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -398,25 +397,39 @@ public class MainWeatherActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_camera) {
-            PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
 
-            try {
-                startActivityForResult(builder.build(this), PLACE_PICKER_REQUEST);
-            } catch (GooglePlayServicesRepairableException e) {
-                e.printStackTrace();
-            } catch (GooglePlayServicesNotAvailableException e) {
-                e.printStackTrace();
+        } else if (id == R.id.nav_choicePlace) {
+            if (isNetworkAvailable()) {
+                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+                try {
+                    startActivityForResult(builder.build(this), PLACE_PICKER_REQUEST);
+                } catch (GooglePlayServicesRepairableException e) {
+                    e.printStackTrace();
+                } catch (GooglePlayServicesNotAvailableException e) {
+                    e.printStackTrace();
+                }
             }
-        } else if (id == R.id.nav_gallery) {
-
+            else{
+                Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
+            }
         } else if (id == R.id.nav_slideshow) {
 
         } else if (id == R.id.nav_manage) {
 
         } else if (id == R.id.nav_share) {
-            LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile"));
+            if (isNetworkAvailable()) {
+                LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile"));
+            }
+            else{
+                Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
+            }
         } else if (id == R.id.nav_send) {
-            signIn();
+            if (isNetworkAvailable()) {
+                signIn();;
+            }
+            else{
+                Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -476,8 +489,8 @@ public class MainWeatherActivity extends AppCompatActivity
 
     private class GetTodayWeather extends GetWeatherTodaySimple {
 
-        public GetTodayWeather(ProgressDialog progressDialog) {
-            super(progressDialog);
+        public GetTodayWeather(ProgressDialog progressDialog, Context context) {
+            super(progressDialog, context);
         }
 
         @Override
@@ -488,6 +501,11 @@ public class MainWeatherActivity extends AppCompatActivity
     }
 
     private class GetWeekWeather extends GetWeatherWeekForecast{
+
+        public GetWeekWeather(Context context) {
+            super(context);
+        }
+
         @Override
         public void onSucess(ArrayList<Weather> weatherArrayList, String s) {
             saveDataWeek(s);

@@ -28,7 +28,11 @@ public class Weather {
     }
 
     public void setTemperature(String temperature) {
-        this.temperature = Double.valueOf(temperature)-273.15;
+        this.temperature = Double.valueOf(temperature);
+    }
+
+    public void setTemperature(Double temperature) {
+        this.temperature = temperature;
     }
 
     public double getMin_temperature() {
@@ -40,7 +44,7 @@ public class Weather {
     }
 
     public void setMin_temperature(String min_temperature) {
-        this.min_temperature = Double.valueOf(min_temperature)-273.15;
+        this.min_temperature = Double.valueOf(min_temperature);
     }
 
     public double getMax_temperature() {
@@ -52,7 +56,7 @@ public class Weather {
     }
 
     public void setMax_temperature(String max_temperature) {
-        this.max_temperature = Double.valueOf(max_temperature)-273.15;
+        this.max_temperature = Double.valueOf(max_temperature);
     }
 
     public String getDescription() {

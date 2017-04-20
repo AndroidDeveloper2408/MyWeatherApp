@@ -11,21 +11,26 @@
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
 
     <application
+        android:name="android.support.multidex.MultiDexApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:name="android.support.multidex.MultiDexApplication"
         android:theme="@style/AppTheme">
-        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDCfVNd8R-qLXYezjzR9tL8lzTlFuzORvY"/>
-        <provider android:authorities="com.facebook.app.FacebookContentProvider716805051858122"
+            android:value="AIzaSyDCfVNd8R-qLXYezjzR9tL8lzTlFuzORvY" />
+
+        <provider
             android:name="com.facebook.FacebookContentProvider"
+            android:authorities="com.facebook.app.FacebookContentProvider716805051858122"
             android:exported="true" />
-        <activity android:name=".MainActivity">
+
+        <activity android:name=".activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -33,7 +38,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MainWeatherActivity"
+            android:name=".activities.MainWeatherActivity"
             android:label="@string/title_activity_main_weather"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -42,7 +47,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".InfoActivity"></activity>
+        <activity android:name=".activities.InfoActivity" />
+        <activity android:name=".activities.GraphActivity"></activity>
     </application>
 
 </manifest>

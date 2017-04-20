@@ -1,6 +1,8 @@
 package com.example.myweatherapp.tasks;
 
+import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import com.example.myweatherapp.getMainSettings.GetConnection;
 import com.example.myweatherapp.getMainSettings.MainSettings;
@@ -12,6 +14,11 @@ public abstract class GetWeatherWeekForecast extends AsyncTask<String,Void,Strin
 
     ArrayList<Weather> weathers =  new ArrayList<>();
     MainSettings mainSettings = new MainSettings();
+    Context context;
+
+    public GetWeatherWeekForecast(Context context) {
+        this.context = context;
+    }
 
     public abstract void onSucess(ArrayList<Weather> weatherArrayList, String s);
 
@@ -29,6 +36,10 @@ public abstract class GetWeatherWeekForecast extends AsyncTask<String,Void,Strin
     @Override
     protected void onPostExecute(String s) {
         super.onPostExecute(s);
+        if(s.contains("Error: Not found city")){
+            Toast.makeText(context, "Error: Not found city", Toast.LENGTH_LONG).show();
+            return;
+        }
         weathers = mainSettings.groupByDay(mainSettings.parseLongForecastJson(s));
         onSucess(weathers, s);
     }

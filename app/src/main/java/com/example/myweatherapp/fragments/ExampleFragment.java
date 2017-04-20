@@ -12,7 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.myweatherapp.R;
-import com.example.myweatherapp.adapter.RecycleForecastAdapter;
+import com.example.myweatherapp.adapters.RecycleForecastAdapter;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
 

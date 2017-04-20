@@ -24,18 +24,16 @@ public class MainSettings {
     public static String API_LINK_WEEK = "http://api.openweathermap.org/data/2.5/forecast";
 
     @NonNull
-    public static String apiRequestToday(){
+    public static String apiRequestToday(String lat, String lng){
         StringBuilder sb = new StringBuilder(API_LINK_TODAY);
-        sb.append("?q=London,uk&appid=");
-        sb.append(API_KEY);
+        sb.append(String.format("?lat=%s&lon=%s&APPID=%s&units=metric",lat,lng,API_KEY));
         return sb.toString();
     }
 
     @NonNull
-    public static String apiRequestWeek(){
+    public static String apiRequestWeek(String lat, String lng){
         StringBuilder sb = new StringBuilder(API_LINK_WEEK);
-        sb.append("?q=London,uk&appid=");
-        sb.append(API_KEY);
+        sb.append(String.format("?lat=%s&lon=%s&APPID=%s&units=metric",lat,lng,API_KEY));
         return sb.toString();
     }
 
@@ -245,6 +243,7 @@ public class MainSettings {
 
     public ArrayList<Weather> groupByDay(ArrayList<ArrayList<Weather>> itemList){
         ArrayList<Weather> arrayList = new ArrayList<>();
+        Double temp = 0.0;
         Double min_temp = 0.0;
         Double max_temp = 0.0;
         Double wind = 0.0;
@@ -252,6 +251,7 @@ public class MainSettings {
         Double humidity = 0.0;
         for(int i = 0; i <itemList.size(); i++){
             for (int j = 0; j < itemList.get(i).size(); j++){
+                temp += itemList.get(i).get(j).getTemperature();
                 min_temp += itemList.get(i).get(j).getMin_temperature();
                 max_temp += itemList.get(i).get(j).getMax_temperature();
                 wind += Double.valueOf(itemList.get(i).get(j).getWind());
@@ -262,6 +262,7 @@ public class MainSettings {
             String icon = itemList.get(i).get(0).getIcon();
             String description = itemList.get(i).get(0).getDescription();
             Weather weather = new Weather();
+            weather.setTemperature(temp/itemList.get(i).size());
             weather.setMin_temperature(min_temp/itemList.get(i).size());
             weather.setMax_temperature(max_temp/itemList.get(i).size());
             weather.setWind(String.valueOf(wind/itemList.get(i).size()));
@@ -271,6 +272,7 @@ public class MainSettings {
             weather.setIcon(icon);
             weather.setDescription(description);
             arrayList.add(i, weather);
+            temp = 0.0;
             min_temp = 0.0;
             max_temp = 0.0;
             wind = 0.0;

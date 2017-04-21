@@ -3,17 +3,9 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_sort_black_24dp"
-            android:title="Choice city from list" />
-        <item
             android:id="@+id/nav_choicePlace"
             android:icon="@drawable/ic_place_black_24dp"
-            android:title="Choice place on the map" />
-        <item
-            android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_near_me_black_24dp"
-            android:title="Choice nearby places" />
+            android:title="Change place" />
         <item
             android:id="@+id/nav_manage"
             android:icon="@drawable/ic_menu_manage"

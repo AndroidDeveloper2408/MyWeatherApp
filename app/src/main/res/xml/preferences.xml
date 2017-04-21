@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:key="categ1"
+        android:summary="Category of notifications"
+        android:title="Notifications">
+            <SwitchPreference
+                android:defaultValue="false"
+                android:key="sp1"
+                android:title="Enable notifications"
+                android:summary="No Data"/>
+            <ListPreference
+                android:dependency="sp1"
+                android:entries="@array/entries"
+                android:entryValues="@array/entry_values"
+                android:key="list"
+                android:summary="How often must update"
+                android:title="Update every">
+            </ListPreference>
+    </PreferenceCategory>
+</PreferenceScreen>

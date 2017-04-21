@@ -28,7 +28,7 @@ public abstract class GetWeatherTodaySimple extends AsyncTask<String, Void, Stri
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        if(!progressDialog.isShowing()) {
+        if(progressDialog !=null && !progressDialog.isShowing()) {
             progressDialog.setMessage("Update data");
             progressDialog.setCanceledOnTouchOutside(false);
             progressDialog.show();
@@ -45,12 +45,16 @@ public abstract class GetWeatherTodaySimple extends AsyncTask<String, Void, Stri
     protected void onPostExecute(String s) {
         super.onPostExecute(s);
         if(s.contains("Error: Not found city")){
-            progressDialog.dismiss();
+            if(progressDialog !=null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
             Toast.makeText(context, "Error: Not found city", Toast.LENGTH_LONG).show();
             return;
         }
         weather = mainSettings.parseTodayJson(s);
-        progressDialog.dismiss();
+        if(progressDialog !=null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
         onSucess(weather, s);
     }
 }

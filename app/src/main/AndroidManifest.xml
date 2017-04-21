@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
     <application
         android:name="android.support.multidex.MultiDexApplication"
@@ -38,6 +39,9 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".activities.PrefActivity"
+            android:label="Preferences" />
+        <activity
             android:name=".activities.MainWeatherActivity"
             android:label="@string/title_activity_main_weather"
             android:theme="@style/AppTheme.NoActionBar">
@@ -48,7 +52,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.InfoActivity" />
-        <activity android:name=".activities.GraphActivity"></activity>
+        <activity android:name=".activities.GraphActivity" />
+        <service
+            android:name=".services.MyService"
+            android:process=":proc" />
     </application>
-
 </manifest>

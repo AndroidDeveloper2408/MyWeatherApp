@@ -8,5 +8,15 @@
     <string name="facebook_app_id">716805051858122</string>
     <string name="server_client_id">257778370457-i0v9m4o3gsoeq5quifevhqkl3nlhd144.apps.googleusercontent.com</string>
 
-    <string name="action_settings">Refresh</string>
+    <string name="action_tools">Tools</string>
+    <string-array name="entries">
+        <item>Every 5 seconds</item>
+        <item>Every 10 seconds</item>
+        <item>Every 15 seconds</item>
+    </string-array>
+    <string-array name="entry_values">
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+    </string-array>>
 </resources>

@@ -112,53 +112,17 @@ public class MainWeatherActivity extends AppCompatActivity
     Weather todayweather = new Weather();
     MainSettings mainSettings = new MainSettings();
 
+    SharedPreferences prefs;
+    SharedPreferences.Editor editor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_weather);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        appView = findViewById(R.id.viewApp);
-        progressDialog = new ProgressDialog(this);
-
-        initTabs();
         initViews();
-
+        initTabs();
         facebookInit();
-
         googlePlusInit();
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (prefs.getBoolean("isdata", false)) {
-            todayweather = mainSettings.parseTodayJson(prefs.getString("lastToday", "123"));
-            setValuesToViews(todayweather);
-        }
-
-        mGoogleApiClientPlaces = new GoogleApiClient
-                .Builder(this)
-                .addApi(Places.GEO_DATA_API)
-                .addApi(Places.PLACE_DETECTION_API)
-                .enableAutoManage(this, 1, this)
-                .build();
-
     }
 
     public void googlePlusInit(){
@@ -318,6 +282,42 @@ public class MainWeatherActivity extends AppCompatActivity
     }
 
     public void initViews() {
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (isNetworkAvailable()) {
+                    String lat = prefs.getString("lat", "47.8167");
+                    String lon = prefs.getString("lon", "35.1833");
+                    new GetTodayWeather(progressDialog, getApplicationContext()).execute(MainSettings.apiRequestToday(lat, lon));
+                    new GetWeekWeather(getApplicationContext()).execute(MainSettings.apiRequestWeek(lat, lon));
+                    isData = true;
+                    editor.putBoolean("isdata", isData);
+                    editor.commit();
+                }
+                else{
+                    Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
+                }
+            }
+        });
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
+        appView = findViewById(R.id.viewApp);
+        progressDialog = new ProgressDialog(this);
+
         imageView = (ImageView) findViewById(R.id.imageView3);
         tvCity = (TextView) findViewById(R.id.tvCity);
         tvTemperature = (TextView) findViewById(R.id.tvTemperature);
@@ -333,6 +333,18 @@ public class MainWeatherActivity extends AppCompatActivity
         city = (TextView) navigationView.getHeaderView(0).findViewById(R.id.header2);
         descr = (TextView) navigationView.getHeaderView(0).findViewById(R.id.header3);
         img = (ImageView) navigationView.getHeaderView(0).findViewById(R.id.imageView);
+
+        if (prefs.getBoolean("isdata", false)) {
+            todayweather = mainSettings.parseTodayJson(prefs.getString("lastToday", "123"));
+            setValuesToViews(todayweather);
+        }
+
+        mGoogleApiClientPlaces = new GoogleApiClient
+                .Builder(this)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
+                .enableAutoManage(this, 1, this)
+                .build();
     }
 
     private boolean isNetworkAvailable() {
@@ -366,21 +378,11 @@ public class MainWeatherActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_refresh) {
-            if (isNetworkAvailable()) {
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            String lat = prefs.getString("lat", "47.8167");
-            String lon = prefs.getString("lon", "35.1833");
-            new GetTodayWeather(progressDialog, this).execute(MainSettings.apiRequestToday(lat, lon));
-            new GetWeekWeather(this).execute(MainSettings.apiRequestWeek(lat, lon));
-            isData = true;
-            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-            editor.putBoolean("isdata", isData);
-            editor.commit();
-            }
-            else{
-                Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
-            }
+        if (id == R.id.action_tools) {
+            Intent intent = new Intent();
+            intent.setClassName(this, "com.example.myweatherapp.activities.PrefActivity");
+            startActivity(intent);
+            return true;
         }
         else if(id == R.id.action_graph){
             Intent intent = new Intent(this, GraphActivity.class);
@@ -395,9 +397,7 @@ public class MainWeatherActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-
-        } else if (id == R.id.nav_choicePlace) {
+        if (id == R.id.nav_choicePlace) {
             if (isNetworkAvailable()) {
                 PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
                 try {
@@ -411,10 +411,11 @@ public class MainWeatherActivity extends AppCompatActivity
             else{
                 Snackbar.make(appView, "Connection is not available", Snackbar.LENGTH_LONG).show();
             }
-        } else if (id == R.id.nav_slideshow) {
-
         } else if (id == R.id.nav_manage) {
-
+            Intent intent = new Intent();
+            intent.setClassName(this, "com.example.myweatherapp.activities.PrefActivity");
+            startActivity(intent);
+            return true;
         } else if (id == R.id.nav_share) {
             if (isNetworkAvailable()) {
                 LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile"));
@@ -444,7 +445,6 @@ public class MainWeatherActivity extends AppCompatActivity
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
     }
-
 
     public void setValuesToViews(Weather todayWeather) {
         temp.setText(String.format("%.1f °C", todayWeather.getTemperature()));

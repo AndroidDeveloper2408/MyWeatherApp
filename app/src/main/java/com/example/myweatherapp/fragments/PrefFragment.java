@@ -1,8 +1,5 @@
 package com.example.myweatherapp.fragments;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
@@ -13,15 +10,8 @@ import android.preference.SwitchPreference;
 import android.widget.Toast;
 
 import com.example.myweatherapp.R;
-import com.example.myweatherapp.services.MyService;
-
-import static android.content.Context.ALARM_SERVICE;
 
 public class PrefFragment extends PreferenceFragment {
-
-    Intent alarmIntent;
-    PendingIntent pendingIntent;
-    AlarmManager alarmManager;
 
     boolean update = true;
     private static SharedPreferences mUpdate;
@@ -30,10 +20,6 @@ public class PrefFragment extends PreferenceFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
-
-        alarmIntent = new Intent(getActivity(), MyService.class);
-        pendingIntent = PendingIntent.getService(getActivity(), 0, alarmIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        alarmManager = (AlarmManager) getActivity().getSystemService(ALARM_SERVICE);
 
         mUpdate = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
         update = mUpdate.getBoolean("update", false);
@@ -54,13 +40,9 @@ public class PrefFragment extends PreferenceFragment {
                     boolean switched = ((SwitchPreference) preference)
                             .isChecked();
                     update = !switched;
-                    if(update) {
-                        long period = (Long.valueOf(mUpdate.getString("updateTime", "1"))) * 1000;
-                        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period, pendingIntent);
-                    }
-                    else {
-                        alarmManager.cancel(pendingIntent);
-                    }
+                    mEditor = mUpdate.edit();
+                    mEditor.putBoolean("update", update);
+                    mEditor.commit();
                     sp1.setSummary(update == false ? "Disabled" : "Enabled");
                     return true;
                 }

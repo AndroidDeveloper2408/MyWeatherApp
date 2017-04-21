@@ -1,5 +1,7 @@
 package com.example.myweatherapp.activities;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -34,6 +36,7 @@ import com.example.myweatherapp.adapters.RecycleForecastAdapter;
 import com.example.myweatherapp.adapters.TabsPagerFragmentAdapter;
 import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
+import com.example.myweatherapp.services.MyService;
 import com.example.myweatherapp.tasks.GetWeatherTodaySimple;
 import com.example.myweatherapp.tasks.GetWeatherWeekForecast;
 import com.facebook.CallbackManager;
@@ -115,6 +118,10 @@ public class MainWeatherActivity extends AppCompatActivity
     SharedPreferences prefs;
     SharedPreferences.Editor editor;
 
+    Intent alarmIntent;
+    PendingIntent pendingIntent;
+    AlarmManager alarmManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -123,6 +130,18 @@ public class MainWeatherActivity extends AppCompatActivity
         initTabs();
         facebookInit();
         googlePlusInit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(prefs.getBoolean("update", false)) {
+            long period = (Long.valueOf(prefs.getString("updateTime", "1"))) * 1000;
+            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period, pendingIntent);
+        }
+        else {
+            alarmManager.cancel(pendingIntent);
+        }
     }
 
     public void googlePlusInit(){
@@ -282,6 +301,11 @@ public class MainWeatherActivity extends AppCompatActivity
     }
 
     public void initViews() {
+
+        alarmIntent = new Intent(this, MyService.class);
+        pendingIntent = PendingIntent.getService(this, 0, alarmIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
 

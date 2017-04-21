@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
@@ -19,6 +21,7 @@ import com.example.myweatherapp.getMainSettings.MainSettings;
 import com.example.myweatherapp.getMainSettings.Weather;
 import com.example.myweatherapp.tasks.GetWeatherTodaySimple;
 
+import static com.example.myweatherapp.getMainSettings.MainSettings.convertDate;
 import static com.example.myweatherapp.getMainSettings.MainSettings.setIconToList;
 
 public class MyService extends Service {
@@ -39,10 +42,27 @@ public class MyService extends Service {
 
     }
 
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
     public int onStartCommand(Intent intent, int flags, int startId) {
-                String lat = prefs.getString("lat", "47.8167");
-                String lon = prefs.getString("lon", "35.1833");
-                new GetTodayWeather(null, getApplicationContext()).execute(MainSettings.apiRequestToday(lat, lon));
+        if(isNetworkAvailable()) {
+            String lat = prefs.getString("lat", "47.8167");
+            String lon = prefs.getString("lon", "35.1833");
+            new GetTodayWeather(null, getApplicationContext()).execute(MainSettings.apiRequestToday(lat, lon));
+        }
+        else{
+            if (prefs.getBoolean("isdata", false)) {
+                Weather todayweather;
+                MainSettings mainSettings = new MainSettings();
+                todayweather = mainSettings.parseTodayJson(prefs.getString("lastToday", "123"));
+                sendNotif("Last updated: " + String.format("%.1f °C", todayweather.getTemperature()), todayweather.getDescription(),
+                        setIconToList(todayweather.getIcon()),setIconToList(todayweather.getIcon()));
+            }
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
